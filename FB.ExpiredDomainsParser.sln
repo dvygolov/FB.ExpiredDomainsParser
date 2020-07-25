@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30320.27
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FB.ExpiredDomainsParser", "FB.ExpiredDomainsParser.csproj", "{10C9C24A-7874-425B-85DA-975907FD37FB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{10C9C24A-7874-425B-85DA-975907FD37FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10C9C24A-7874-425B-85DA-975907FD37FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10C9C24A-7874-425B-85DA-975907FD37FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10C9C24A-7874-425B-85DA-975907FD37FB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A0BFF6CF-E339-4D6E-A460-36C3451EFD47}
+	EndGlobalSection
+EndGlobal

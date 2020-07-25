@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FB.ExpiredDomainsParser": {
+      "commandName": "Project",
+      "commandLineArgs": "45.148.154.83:30011:rattack_gmail_com:b7f6f8536e EAABsbCS1iHgBAINy8WBNjT1ZCWSRIKxsI9MjMEtH2mhaEkpiHeobb2uzNTZAzEqkgrEHikTv1l9LY3EBhHJbjSm8mZBriNDp43ANMJiTFcoVeN7soi4XqGR7rSb4gg3Msw2wjEgR2fdZCT9DZCs8TiI2JjUro4f16cHbcS1ZCCTVI65JgS1EL0"
+    }
+  }
+}
