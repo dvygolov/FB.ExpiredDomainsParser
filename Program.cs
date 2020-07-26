@@ -60,7 +60,7 @@ namespace FB.ExpiredDomainsParser
             }
 
             List<string> domains = new List<string>();
-            var zones = new int[] { 2, 3, 4, 7, 12 };
+            var zones = new int[] { 2, 3, 4, 5, 7, 12, 19, 59, 69, 76, 1, 87, 94, 89, 119, 129,154, 167, 247, 249, 674, 1129, 1065, 595, 660 };
             foreach (var z in zones)
             {
                 Console.WriteLine($"Получаем списки доменов в зоне {z}...");
@@ -76,15 +76,14 @@ namespace FB.ExpiredDomainsParser
                         var config = Configuration.Default;
                         var context = BrowsingContext.New(config);
                         var doc = await context.OpenAsync(req => req.Content(resContent));
-                        domains.AddRange(doc.All
-                            .Where(el => el.ClassList.Contains("namelinks")).Select(el => el.InnerHtml).ToList());
-                        if (domains.Count == 0)
+                        var newDomains=doc.All
+                            .Where(el => el.ClassList.Contains("namelinks")).Select(el => el.InnerHtml).ToList();
+                        Console.WriteLine($"Нашли {newDomains.Count} доменов.");
+                        domains.AddRange(newDomains);
+                        if (newDomains.Count == 0)
                         {
-                            Console.WriteLine("Не удалось получить список доменов!!!");
-                            Console.WriteLine("Скорее всего ваш ip забанен, попробуйте другой прокси.");
-                            Console.WriteLine("Нажмите любую клавишу для выхода.");
-                            Console.ReadKey();
-                            return;
+                            Console.WriteLine("Скорее всего список кончился, дальше не идём.");
+                            break;
                         }
                         i += 25;
                         dCount++;
