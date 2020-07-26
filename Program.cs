@@ -59,49 +59,55 @@ namespace FB.ExpiredDomainsParser
                 client.Proxy = p;
             }
 
-            Console.WriteLine("Получаем списки доменов...");
-            var res = await httpClient.GetAsync("https://www.expireddomains.net/deleted-domains/");
-            int i = 25;
             List<string> domains = new List<string>();
-            int dCount = 1;
-            do
+            var zones = new int[] { 2, 3, 4, 7, 12 };
+            foreach (var z in zones)
             {
-                try
+                Console.WriteLine($"Получаем списки доменов в зоне {z}...");
+                var res = await httpClient.GetAsync($"https://www.expireddomains.net/deleted-domains?ftlds[]={z}");
+                int i = 25;
+                int dCount = 1;
+                do
                 {
-                    var resContent = await res.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Получили список доменов #{dCount}.");
-                    var config = Configuration.Default;
-                    var context = BrowsingContext.New(config);
-                    var doc = await context.OpenAsync(req => req.Content(resContent));
-                    domains.AddRange(doc.All
-                        .Where(el => el.ClassList.Contains("namelinks")).Select(el => el.InnerHtml).ToList());
-                    if (domains.Count == 0)
+                    try
                     {
-                        Console.WriteLine("Не удалось получить список доменов!!!");
-                        Console.WriteLine("Скорее всего ваш ip забанен, попробуйте другой прокси.");
-                        Console.WriteLine("Нажмите любую клавишу для выхода.");
-                        Console.ReadKey();
-                        return;
+                        var resContent = await res.Content.ReadAsStringAsync();
+                        Console.WriteLine($"Получили список доменов #{dCount}.");
+                        var config = Configuration.Default;
+                        var context = BrowsingContext.New(config);
+                        var doc = await context.OpenAsync(req => req.Content(resContent));
+                        domains.AddRange(doc.All
+                            .Where(el => el.ClassList.Contains("namelinks")).Select(el => el.InnerHtml).ToList());
+                        if (domains.Count == 0)
+                        {
+                            Console.WriteLine("Не удалось получить список доменов!!!");
+                            Console.WriteLine("Скорее всего ваш ip забанен, попробуйте другой прокси.");
+                            Console.WriteLine("Нажмите любую клавишу для выхода.");
+                            Console.ReadKey();
+                            return;
+                        }
+                        i += 25;
+                        dCount++;
+                        Console.WriteLine("Ждём...");
+                        await Task.Delay(r.Next(1000, 3000));
+                        res = await httpClient.GetAsync($"https://www.expireddomains.net/deleted-domains/?start={i}&ftlds[]={z}#listing");
                     }
-                    i += 25;
-                    dCount++;
-                    Console.WriteLine("Ждём...");
-                    await Task.Delay(r.Next(1000, 3000));
-                    res = await httpClient.GetAsync($"https://www.expireddomains.net/deleted-domains/?start={i}#listing");
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Произошла ошибка: {e}");
-                }
-            } while (i <= 300);
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Произошла ошибка: {e}");
+                    }
+                } while (i <= 300);
+            }
 
             var found = new List<string>();
             foreach (var d in domains)
             {
+                if (d.Contains("...")) continue;
                 var domain = $"http://{d}";
                 Console.WriteLine($"Получаем лайки домена {domain}");
                 var request = new RestRequest(Method.GET);
                 request.AddQueryParameter("id", domain);
+                request.AddQueryParameter("scrape", "true");
                 request.AddQueryParameter("fields", "engagement");
                 request.AddQueryParameter("access_token", token);
 
@@ -118,8 +124,24 @@ namespace FB.ExpiredDomainsParser
 
                 if (count >= 1000)
                 {
-                    found.Add($"{domain} : {count}");
-                    Console.WriteLine($"{domain} : {count}");
+                    Console.WriteLine($"Проверяем подробнее домен {domain}...");
+                    request = new RestRequest(Method.GET);
+                    request.AddQueryParameter("id", domain);
+                    request.AddQueryParameter("scrape", "true");
+                    request.AddQueryParameter("fields", "engagement");
+                    request.AddQueryParameter("access_token", token);
+                    response = client.Execute(request);
+                    obj = JObject.Parse(response.Content);
+                    count = int.Parse(obj["engagement"]["reaction_count"].ToString());
+                    count += int.Parse(obj["engagement"]["comment_count"].ToString());
+                    count += int.Parse(obj["engagement"]["share_count"].ToString());
+                    if (count >= 1000)
+                    {
+                        found.Add($"{domain} : {count}");
+                        Console.WriteLine($"{domain} : {count}");
+                    }
+                    else
+                        Console.WriteLine("Нее, фуфло какое-то(");
                 }
             }
 
