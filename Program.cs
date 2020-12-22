@@ -1,6 +1,4 @@
 ﻿using AngleSharp;
-using AngleSharp.Dom;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
@@ -16,19 +14,19 @@ namespace FB.ExpiredDomainsParser
     {
         static async Task Main(string[] args)
         {
-            string proxy = null, token = null;
+            string proxystr = null, token = null;
             if (args.Length == 2)
             {
-                proxy = args[0];
+                proxystr = args[0];
                 token = args[1];
             }
 
-            if (string.IsNullOrEmpty(proxy))
+            if (string.IsNullOrEmpty(proxystr))
             {
                 Console.WriteLine("Формат ввода - ip:port:login:password");
                 Console.WriteLine("Прокси должен быть HTTP (не SOCKS)");
                 Console.Write("Введите прокси (Enter, если нужен):");
-                proxy = Console.ReadLine();
+                proxystr = Console.ReadLine();
             }
             if (string.IsNullOrEmpty(token))
             {
@@ -36,14 +34,14 @@ namespace FB.ExpiredDomainsParser
                 token = Console.ReadLine();
             }
 
-            WebProxy p;
+            WebProxy proxy;
             HttpClient httpClient = new HttpClient();
             var client = new RestClient("https://graph.facebook.com/v7.0") { Timeout = -1 };
             var r = new Random();
-            if (!string.IsNullOrEmpty(proxy))
+            if (!string.IsNullOrEmpty(proxystr))
             {
-                var split = proxy.Split(':');
-                p = new WebProxy(split[0], int.Parse(split[1]))
+                var split = proxystr.Split(':');
+                proxy = new WebProxy(split[0], int.Parse(split[1]))
                 {
                     Credentials = new NetworkCredential()
                     {
@@ -51,16 +49,16 @@ namespace FB.ExpiredDomainsParser
                         Password = split[3]
                     }
                 };
-                var hch = new HttpClientHandler() { UseProxy = true, Proxy = p };
+                var hch = new HttpClientHandler() { UseProxy = true, Proxy = proxy };
                 httpClient = new HttpClient(hch);
 
                 var tmp = r.Next(20, 99);
                 httpClient.DefaultRequestHeaders.Add("User-Agent", $"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.{tmp} (KHTML like Gecko) Chrome/78.0.3904.108 Safari/537.{tmp}");
-                client.Proxy = p;
+                client.Proxy = proxy;
             }
 
             List<string> domains = new List<string>();
-            var zones = new int[] { 2, 3, 4, 5, 7, 12, 19, 59, 69, 76, 1, 87, 94, 89, 119, 129,154, 167, 247, 249, 674, 1129, 1065, 595, 660 };
+            var zones = new int[] { 2, 3, 4, 5, 7, 12, 19, 59, 69, 76, 1, 87, 94, 89, 119, 129, 154, 167, 247, 249, 674, 1129, 1065, 595, 660 };
             foreach (var z in zones)
             {
                 Console.WriteLine($"Получаем списки доменов в зоне {z}...");
@@ -76,7 +74,7 @@ namespace FB.ExpiredDomainsParser
                         var config = Configuration.Default;
                         var context = BrowsingContext.New(config);
                         var doc = await context.OpenAsync(req => req.Content(resContent));
-                        var newDomains=doc.All
+                        var newDomains = doc.All
                             .Where(el => el.ClassList.Contains("namelinks")).Select(el => el.InnerHtml).ToList();
                         Console.WriteLine($"Нашли {newDomains.Count} доменов.");
                         domains.AddRange(newDomains);
@@ -99,48 +97,52 @@ namespace FB.ExpiredDomainsParser
             }
 
             var found = new List<string>();
+            var prefixes = new[] { "http://", "https://" };
             foreach (var d in domains)
             {
                 if (d.Contains("...")) continue;
-                var domain = $"http://{d}";
-                Console.WriteLine($"Получаем лайки домена {domain}");
-                var request = new RestRequest(Method.GET);
-                request.AddQueryParameter("id", domain);
-                request.AddQueryParameter("scrape", "true");
-                request.AddQueryParameter("fields", "engagement");
-                request.AddQueryParameter("access_token", token);
-
-                IRestResponse response = client.Execute(request);
-                if (response.StatusCode != HttpStatusCode.OK)
+                foreach (var p in prefixes)
                 {
-                    Console.WriteLine($"Не смогли получить лайки домена {domain}");
-                    continue;
-                }
-                var obj = JObject.Parse(response.Content);
-                var count = int.Parse(obj["engagement"]["reaction_count"].ToString());
-                count += int.Parse(obj["engagement"]["comment_count"].ToString());
-                count += int.Parse(obj["engagement"]["share_count"].ToString());
-
-                if (count >= 1000)
-                {
-                    Console.WriteLine($"Проверяем подробнее домен {domain}...");
-                    request = new RestRequest(Method.GET);
+                    var domain = $"{p}{d}";
+                    Console.WriteLine($"Получаем лайки домена {domain}");
+                    var request = new RestRequest(Method.GET);
                     request.AddQueryParameter("id", domain);
                     request.AddQueryParameter("scrape", "true");
                     request.AddQueryParameter("fields", "engagement");
                     request.AddQueryParameter("access_token", token);
-                    response = client.Execute(request);
-                    obj = JObject.Parse(response.Content);
-                    count = int.Parse(obj["engagement"]["reaction_count"].ToString());
+
+                    IRestResponse response = client.Execute(request);
+                    if (response.StatusCode != HttpStatusCode.OK)
+                    {
+                        Console.WriteLine($"Не смогли получить лайки домена {domain}");
+                        continue;
+                    }
+                    var obj = JObject.Parse(response.Content);
+                    var count = int.Parse(obj["engagement"]["reaction_count"].ToString());
                     count += int.Parse(obj["engagement"]["comment_count"].ToString());
                     count += int.Parse(obj["engagement"]["share_count"].ToString());
+
                     if (count >= 1000)
                     {
-                        found.Add($"{domain} : {count}");
-                        Console.WriteLine($"{domain} : {count}");
+                        Console.WriteLine($"Проверяем подробнее домен {domain}...");
+                        request = new RestRequest(Method.GET);
+                        request.AddQueryParameter("id", domain);
+                        request.AddQueryParameter("scrape", "true");
+                        request.AddQueryParameter("fields", "engagement");
+                        request.AddQueryParameter("access_token", token);
+                        response = client.Execute(request);
+                        obj = JObject.Parse(response.Content);
+                        count = int.Parse(obj["engagement"]["reaction_count"].ToString());
+                        count += int.Parse(obj["engagement"]["comment_count"].ToString());
+                        count += int.Parse(obj["engagement"]["share_count"].ToString());
+                        if (count >= 1000)
+                        {
+                            found.Add($"{domain} : {count}");
+                            Console.WriteLine($"{domain} : {count}");
+                        }
+                        else
+                            Console.WriteLine("Нее, фуфло какое-то(");
                     }
-                    else
-                        Console.WriteLine("Нее, фуфло какое-то(");
                 }
             }
 
