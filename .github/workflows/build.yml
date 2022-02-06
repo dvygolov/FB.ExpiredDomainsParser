@@ -33,7 +33,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Zip the Build
-      run: zip -r ${{ secrets.ReleaseZipName }} ./AppName/bin/Release/netcoreapp3.1/ 
+      run: zip -r ${{ secrets.ReleaseZipName }} ./FB.ExpiredDomainsParser/bin/Release/net6.0/ 
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
