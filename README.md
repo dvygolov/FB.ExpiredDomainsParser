@@ -21,6 +21,6 @@ Software for parsing deleted domains from ExpiredDomains.net. Parses and gets Fa
 # Info:
 - Compile the program
 - Create a cookies.txt file and place it in the compiled program's folder
-- Place your Facebook cookies into cookies.txt file
+- Place your Facebook cookies (in JSON-format) into cookies.txt file
 - Run the program, it will ask you to enter proxy (if you need it) and Facebook's access token
 - After everything is set up the program will start parsing
