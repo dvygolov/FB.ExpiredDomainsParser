@@ -34,7 +34,7 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
       - name: Zip the Build
-        run: zip -r FB.ExpiredDomainsParser.zip .
+        run: zip -r FB.ExpiredDomainsParser.zip ./bin/Release/netcoreapp3.1
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
