@@ -17,6 +17,7 @@ namespace FB.ExpiredDomainsParser
         const int GoodDomainLikes = 1000;
         static async Task Main(string[] args)
         {
+            CopyrightHelper.Show();
             ServicePointManager.ServerCertificateValidationCallback +=
                     (sender, certificate, chain, sslPolicyErrors) => true;
             string proxystr = null, token = null;
