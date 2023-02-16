@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -12,9 +13,19 @@ namespace FB.ExpiredDomainsParser
 {
     class Program
     {
+        const string CookiesFileName = "cookies.txt";
+        const int GoodDomainLikes = 1000;
         static async Task Main(string[] args)
         {
+            ServicePointManager.ServerCertificateValidationCallback +=
+                    (sender, certificate, chain, sslPolicyErrors) => true;
             string proxystr = null, token = null;
+            if (!File.Exists(CookiesFileName))
+            {
+                Console.WriteLine("File with Facebook cookies (cookies.txt) not found!\nCreate one, put cookies there and restart!");
+                return;
+            }
+            var cookies = File.ReadAllText(CookiesFileName);
             if (args.Length == 2)
             {
                 proxystr = args[0];
@@ -23,20 +34,21 @@ namespace FB.ExpiredDomainsParser
 
             if (string.IsNullOrEmpty(proxystr))
             {
-                Console.WriteLine("Формат ввода - ip:port:login:password");
-                Console.WriteLine("Прокси должен быть HTTP (не SOCKS)");
-                Console.Write("Введите прокси (Enter, если нужен):");
+                Console.WriteLine("Proxy format - ip:port:login:password");
+                Console.WriteLine("Proxy must be HTTP (not SOCKS)");
+                Console.Write("Write your proxy (press Enter, if not needed):");
                 proxystr = Console.ReadLine();
             }
             if (string.IsNullOrEmpty(token))
             {
-                Console.Write("Введите токен фб:");
+                Console.Write("Write your Facebook access token:");
                 token = Console.ReadLine();
             }
 
             WebProxy proxy;
             HttpClient httpClient = new HttpClient();
-            var client = new RestClient("https://graph.facebook.com/v7.0") { Timeout = -1 };
+            var client = new RestClient("https://graph.facebook.com/v15.0") { Timeout = -1 };
+
             var r = new Random();
             if (!string.IsNullOrEmpty(proxystr))
             {
@@ -61,7 +73,7 @@ namespace FB.ExpiredDomainsParser
             var zones = new int[] { 2, 3, 4, 5, 7, 12, 19, 59, 69, 76, 1, 87, 94, 89, 119, 129, 154, 167, 247, 249, 674, 1129, 1065, 595, 660 };
             foreach (var z in zones)
             {
-                Console.WriteLine($"Получаем списки доменов в зоне {z}...");
+                Console.WriteLine($"Getting domain names for zone {z}...");
                 var res = await httpClient.GetAsync($"https://www.expireddomains.net/deleted-domains?ftlds[]={z}");
                 int i = 25;
                 int dCount = 1;
@@ -70,28 +82,28 @@ namespace FB.ExpiredDomainsParser
                     try
                     {
                         var resContent = await res.Content.ReadAsStringAsync();
-                        Console.WriteLine($"Получили список доменов #{dCount}.");
+                        Console.WriteLine($"Got domains list #{dCount}.");
                         var config = Configuration.Default;
                         var context = BrowsingContext.New(config);
                         var doc = await context.OpenAsync(req => req.Content(resContent));
                         var newDomains = doc.All
-                            .Where(el => el.ClassList.Contains("namelinks")).Select(el => el.InnerHtml).ToList();
-                        Console.WriteLine($"Нашли {newDomains.Count} доменов.");
+                            .Where(el => el.ClassList.Contains("field_domain")).Select(el => el.TextContent.ToLower()).ToList();
+                        Console.WriteLine($"Found {newDomains.Count} domains.");
                         domains.AddRange(newDomains);
                         if (newDomains.Count == 0)
                         {
-                            Console.WriteLine("Скорее всего список кончился, дальше не идём.");
+                            Console.WriteLine("The list ended, not going further.");
                             break;
                         }
                         i += 25;
                         dCount++;
-                        Console.WriteLine("Ждём...");
+                        Console.WriteLine("Waiting...");
                         await Task.Delay(r.Next(1000, 3000));
                         res = await httpClient.GetAsync($"https://www.expireddomains.net/deleted-domains/?start={i}&ftlds[]={z}#listing");
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Произошла ошибка: {e}");
+                        Console.WriteLine($"Got error: {e}");
                     }
                 } while (i <= 300);
             }
@@ -104,8 +116,9 @@ namespace FB.ExpiredDomainsParser
                 foreach (var p in prefixes)
                 {
                     var domain = $"{p}{d}";
-                    Console.WriteLine($"Получаем лайки домена {domain}");
+                    Console.Write($"Getting domain likes for {domain}...");
                     var request = new RestRequest(Method.GET);
+                    LoadCookiesIntoRequest(request, cookies);
                     request.AddQueryParameter("id", domain);
                     request.AddQueryParameter("scrape", "true");
                     request.AddQueryParameter("fields", "engagement");
@@ -114,18 +127,21 @@ namespace FB.ExpiredDomainsParser
                     IRestResponse response = client.Execute(request);
                     if (response.StatusCode != HttpStatusCode.OK)
                     {
-                        Console.WriteLine($"Не смогли получить лайки домена {domain}");
+                        Console.WriteLine($"\nCouldn't get domain likes for {domain}");
+                        Console.WriteLine(response.ErrorMessage);
                         continue;
                     }
                     var obj = JObject.Parse(response.Content);
                     var count = int.Parse(obj["engagement"]["reaction_count"].ToString());
                     count += int.Parse(obj["engagement"]["comment_count"].ToString());
                     count += int.Parse(obj["engagement"]["share_count"].ToString());
+                    Console.WriteLine($" {count}");
 
-                    if (count >= 1000)
+                    if (count >= GoodDomainLikes)
                     {
-                        Console.WriteLine($"Проверяем подробнее домен {domain}...");
+                        Console.WriteLine($"Checking {domain}...");
                         request = new RestRequest(Method.GET);
+                        LoadCookiesIntoRequest(request, cookies);
                         request.AddQueryParameter("id", domain);
                         request.AddQueryParameter("scrape", "true");
                         request.AddQueryParameter("fields", "engagement");
@@ -135,13 +151,13 @@ namespace FB.ExpiredDomainsParser
                         count = int.Parse(obj["engagement"]["reaction_count"].ToString());
                         count += int.Parse(obj["engagement"]["comment_count"].ToString());
                         count += int.Parse(obj["engagement"]["share_count"].ToString());
-                        if (count >= 1000)
+                        if (count >= GoodDomainLikes)
                         {
                             found.Add($"{domain} : {count}");
                             Console.WriteLine($"{domain} : {count}");
                         }
                         else
-                            Console.WriteLine("Нее, фуфло какое-то(");
+                            Console.WriteLine("No, that's not good!");
                     }
                 }
             }
@@ -149,12 +165,33 @@ namespace FB.ExpiredDomainsParser
             if (found.Count > 0)
             {
                 Console.WriteLine();
-                Console.WriteLine("Найдены годные домены!");
+                Console.WriteLine("Found good domains!");
                 found.ForEach(Console.WriteLine);
             }
-            else Console.WriteLine("Не найдено ничего годного!((");
-            Console.WriteLine("Нажмите любую клавишу для выхода.");
+            else Console.WriteLine("Didn't find anything good((");
+            Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
+        }
+
+        internal static void LoadCookiesIntoRequest(RestRequest req, string cookies)
+        {
+            var res = new List<string>();
+            try
+            {
+                var cookieArray = JArray.Parse(cookies);
+                if (cookieArray != null)
+                {
+                    res = cookieArray
+                        .Where(c => c["domain"].ToString() == ".facebook.com")
+                        .Select(c => $"{c["name"]}={c["value"]};").ToList();
+                }
+                if (res.Count > 0)
+                {
+                    req.AddHeader("cookie", string.Join(" ", res).TrimEnd(';'));
+                }
+
+            }
+            catch { }
         }
     }
 }
