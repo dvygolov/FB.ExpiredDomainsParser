@@ -34,7 +34,7 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
       - name: Zip the Build
-        run: zip -r FB.ExpiredDomainsParser.zip ./bin/Release/netcoreapp3.1
+        run: zip -r FB.ExpiredDomainsParser.zip ./bin/Release/net6.0
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
