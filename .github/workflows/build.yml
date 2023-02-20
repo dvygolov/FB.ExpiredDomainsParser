@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
 
+env:
+  PROJECT_NAME: FB.ExpiredDomainsParser
+
 jobs:
   release:
     name: Release
@@ -37,7 +40,7 @@ jobs:
         uses: thedoctor0/zip-release@0.7.1
         with:
           type: "zip"
-          filename: "FB.ExpiredDomainsParser.${{ runner.os }}.zip"
+          filename: "${{ env.PROJECT_NAME }}.${{ runner.os }}.zip"
           directory: ./bin/Release/net7.0
       - name: Create Release
         uses: marvinpinto/action-automatic-releases@latest
@@ -46,4 +49,4 @@ jobs:
           automatic_release_tag: "latest.${{ runner.os }}"
           title: "Latest ${{ runner.os }} Release"
           prerelease: false
-          files: "FB.ExpiredDomainsParser.${{ runner.os }}.zip"
+          files: "${{ env.PROJECT_NAME }}.${{ runner.os }}.zip"
