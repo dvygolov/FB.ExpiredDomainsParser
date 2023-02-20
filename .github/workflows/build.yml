@@ -49,4 +49,4 @@ jobs:
           automatic_release_tag: "latest.${{ runner.os }}"
           title: "Latest ${{ runner.os }} Release"
           prerelease: false
-          files: "${{ env.PROJECT_NAME }}.${{ runner.os }}.zip"
+          files: "./bin/Release/net7.0/${{ env.PROJECT_NAME }}.${{ runner.os }}.zip"
