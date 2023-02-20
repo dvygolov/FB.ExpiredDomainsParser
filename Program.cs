@@ -48,7 +48,7 @@ namespace FB.ExpiredDomainsParser
 
             WebProxy proxy;
             HttpClient httpClient = new HttpClient();
-            var client = new RestClient("https://graph.facebook.com/v15.0") { Timeout = -1 };
+            var rco = new RestClientOptions("https://graph.facebook.com/v15.0") { MaxTimeout = -1 };
 
             var r = new Random();
             if (!string.IsNullOrEmpty(proxystr))
@@ -67,8 +67,9 @@ namespace FB.ExpiredDomainsParser
 
                 var tmp = r.Next(20, 99);
                 httpClient.DefaultRequestHeaders.Add("User-Agent", $"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.{tmp} (KHTML like Gecko) Chrome/78.0.3904.108 Safari/537.{tmp}");
-                client.Proxy = proxy;
+                rco.Proxy = proxy;
             }
+            var client = new RestClient(rco);
 
             List<string> domains = new List<string>();
             var zones = new int[] { 2, 3, 4, 5, 7, 12, 19, 59, 69, 76, 1, 87, 94, 89, 119, 129, 154, 167, 247, 249, 674, 1129, 1065, 595, 660 };
@@ -118,14 +119,14 @@ namespace FB.ExpiredDomainsParser
                 {
                     var domain = $"{p}{d}";
                     Console.Write($"Getting domain likes for {domain}...");
-                    var request = new RestRequest(Method.GET);
+                    var request = new RestRequest();
                     LoadCookiesIntoRequest(request, cookies);
                     request.AddQueryParameter("id", domain);
                     request.AddQueryParameter("scrape", "true");
                     request.AddQueryParameter("fields", "engagement");
                     request.AddQueryParameter("access_token", token);
 
-                    IRestResponse response = client.Execute(request);
+                    var response = await client.GetAsync(request);
                     if (response.StatusCode != HttpStatusCode.OK)
                     {
                         Console.WriteLine($"\nCouldn't get domain likes for {domain}");
@@ -141,13 +142,13 @@ namespace FB.ExpiredDomainsParser
                     if (count >= GoodDomainLikes)
                     {
                         Console.WriteLine($"Checking {domain}...");
-                        request = new RestRequest(Method.GET);
+                        request = new RestRequest();
                         LoadCookiesIntoRequest(request, cookies);
                         request.AddQueryParameter("id", domain);
                         request.AddQueryParameter("scrape", "true");
                         request.AddQueryParameter("fields", "engagement");
                         request.AddQueryParameter("access_token", token);
-                        response = client.Execute(request);
+                        response = await client.GetAsync(request);
                         obj = JObject.Parse(response.Content);
                         count = int.Parse(obj["engagement"]["reaction_count"].ToString());
                         count += int.Parse(obj["engagement"]["comment_count"].ToString());
