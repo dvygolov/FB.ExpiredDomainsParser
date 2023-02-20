@@ -34,11 +34,11 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
       - name: Zip the Build
-        run: zip -r "FB.ExpiredDomainsParser.$RUNNER_OS.zip" ./bin/Release/net7.0
+        run: zip -r "FB.ExpiredDomainsParser.${{ env.RUNNER_OS }}.zip" ./bin/Release/net7.0
       - name: Create Release
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest.$RUNNER_OS"
+          automatic_release_tag: "latest.${{ env.RUNNER_OS }}"
           title: "Latest Release"
-          files: "FB.ExpiredDomainsParser.$RUNNER_OS.zip"
+          files: "FB.ExpiredDomainsParser.${{ env.RUNNER_OS }}.zip"
