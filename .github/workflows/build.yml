@@ -28,7 +28,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
       - name: Restore dependencies
         run: dotnet restore
       - name: Build
@@ -36,7 +36,8 @@ jobs:
       - name: Zip the Build
         run: zip -r FB.ExpiredDomainsParser.zip ./bin/Release/net6.0
       - name: Create Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        uses: marvinpinto/action-automatic-releases@latest
         with:
+          automatic_release_tag: "latest"
+          title: "Latest Release"
           files: FB.ExpiredDomainsParser.zip
