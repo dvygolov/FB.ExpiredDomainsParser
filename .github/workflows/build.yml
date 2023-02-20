@@ -34,7 +34,11 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
       - name: Zip the Build
-        run: zip -r -D "FB.ExpiredDomainsParser.${{ runner.os }}.zip" ./bin/Release/net7.0
+        uses: thedoctor0/zip-release@0.7.1
+        with:
+          type: "zip"
+          filename: "FB.ExpiredDomainsParser.${{ runner.os }}.zip"
+          directory: ./bin/Release/net7.0
       - name: Create Release
         uses: marvinpinto/action-automatic-releases@latest
         with:
