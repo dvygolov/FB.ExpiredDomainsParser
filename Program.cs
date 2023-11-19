@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace FB.ExpiredDomainsParser
@@ -17,16 +18,18 @@ namespace FB.ExpiredDomainsParser
         const int GoodDomainLikes = 1000;
         static async Task Main(string[] args)
         {
+            string CurrentDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             CopyrightHelper.Show();
             ServicePointManager.ServerCertificateValidationCallback +=
                     (sender, certificate, chain, sslPolicyErrors) => true;
             string proxystr = null, token = null;
-            if (!File.Exists(CookiesFileName))
+            string fullCookiesPath = Path.Combine(CurrentDir, CookiesFileName);
+            if (!File.Exists(fullCookiesPath))
             {
                 Console.WriteLine("File with Facebook cookies (cookies.txt) not found!\nCreate one, put cookies there and restart!");
                 return;
             }
-            var cookies = File.ReadAllText(CookiesFileName);
+            var cookies = File.ReadAllText(fullCookiesPath);
             if (args.Length == 2)
             {
                 proxystr = args[0];
