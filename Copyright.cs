@@ -6,7 +6,7 @@ namespace FB.ExpiredDomainsParser
     {
         public static void Show()
         {
-            Console.WriteLine(@"                ExpiredDomains Parser v1.1.0 ");
+            Console.WriteLine(@"                ExpiredDomains Parser v1.2.0 ");
             Console.WriteLine(@"   _            __     __  _ _             __          __  _     ");
             Console.WriteLine(@"  | |           \ \   / / | | |            \ \        / / | |    ");
             Console.WriteLine(@"  | |__  _   _   \ \_/ /__| | | _____      _\ \  /\  / /__| |__  ");

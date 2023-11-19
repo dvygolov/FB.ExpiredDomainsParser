@@ -51,7 +51,7 @@ namespace FB.ExpiredDomainsParser
 
             WebProxy proxy;
             HttpClient httpClient = new HttpClient();
-            var rco = new RestClientOptions("https://graph.facebook.com/v15.0") { MaxTimeout = -1 };
+            var rco = new RestClientOptions("https://graph.facebook.com/v18.0") { MaxTimeout = -1 };
 
             var r = new Random();
             if (!string.IsNullOrEmpty(proxystr))
